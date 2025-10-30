@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aerospace Digital Clock</title>
+
+  <!-- Futuristic fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --space-0: #040611;
+      --space-1: #070B1F;
+      --accent: #00E5FF;
+      --accent-2: #A176FF;
+      --text: #EAF9FF;
+      --glass: rgba(11, 17, 41, 0.45);
+      --border: rgba(255, 255, 255, 0.12);
+      --parx: 0px;
+      --pary: 0px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(120vmax 100vmax at 10% 10%, #0D1140 0%, transparent 60%),
+        radial-gradient(80vmax 80vmax at 85% 80%, #07122A 0%, transparent 70%),
+        linear-gradient(180deg, var(--space-1), var(--space-0));
+      overflow: hidden;
+      font-family: 'Rajdhani', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    /* Starfield layer */
+    #space {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      display: block;
+    }
+
+    /* Colorful nebula overlays */
+    .nebula {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(80vmax 60vmax at 22% 28%, rgba(108, 0, 255, 0.28), transparent 60%),
+        radial-gradient(60vmax 60vmax at 80% 72%, rgba(0, 200, 255, 0.22), transparent 60%),
+        radial-gradient(40vmax 40vmax at 65% 35%, rgba(0, 255, 198, 0.12), transparent 70%);
+      mix-blend-mode: screen;
+      transform: translate(var(--parx), var(--pary)) scale(1.03);
+      transition: transform 120ms linear;
+      animation: nebulaShift 30s ease-in-out infinite alternate;
+    }
+    @keyframes nebulaShift {
+      0%   { filter: hue-rotate(0deg) saturate(120%);   }
+      100% { filter: hue-rotate(15deg) saturate(140%);  }
+    }
+
+    /* Soft vignette */
+    .vignette {
+      position: fixed;
+      inset: -10vmax;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(100vmax 90vmax at 50% 50%,
+                  transparent 60%, rgba(0,0,0,0.35) 100%);
+    }
+
+    /* Centered clock */
+    .clock-wrap {
+      position: relative;
+      z-index: 3;
+      min-height: 100vh;
+      width: 100%;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .clock-card {
+      position: relative;
+      padding: clamp(18px, 2.2vw, 28px) clamp(24px, 3vw, 40px);
+      border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
+      box-shadow:
+        0 30px 80px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(255,255,255,0.05) inset,
+        0 0 60px rgba(0,229,255,0.12),
+        0 0 90px rgba(161,118,255,0.10);
+      overflow: hidden;
+    }
+    .clock-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        linear-gradient(120deg, rgba(0,229,255,0.5), rgba(161,118,255,0.35) 40%, transparent 60%) border-box;
+      mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+      -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      filter: blur(8px);
+    }
+    .clock-card::after {
+      /* scanline sweep */
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.04), transparent);
+      transform: translateY(-100%);
+      animation: sweep 4.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes sweep {
+      0% { transform: translateY(-100%); opacity: 0; }
+      10% { opacity: 1; }
+      60% { transform: translateY(100%); opacity: 0; }
+      100% { opacity: 0; }
+    }
+
+    .time {
+      font-family: 'Orbitron', 'Rajdhani', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-align: center;
+      white-space: nowrap;
+      user-select: none;
+      font-size: clamp(2.4rem, 8vw, 7rem);
+      line-height: 1.05;
+      color: #E6FBFF;
+      text-shadow:
+        0 0 8px rgba(0, 229, 255, 0.75),
+        0 0 18px rgba(161, 118, 255, 0.45);
+    }
+    .time .colon {
+      animation: blink 1s steps(1) infinite;
+      margin: 0 0.05em;
+      display: inline-block;
+      width: 0.6ch;
+      text-align: center;
+    }
+    @keyframes blink { 50% { opacity: 0.28; } }
+
+    .ampm {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: clamp(0.65rem, 1.6vw, 1.05rem);
+      letter-spacing: 0.2em;
+      margin-left: 12px;
+      color: rgba(230, 251, 255, 0.85);
+      text-shadow: 0 0 8px rgba(0,229,255,0.35);
+      vertical-align: middle;
+    }
+
+    .date {
+      margin-top: 6px;
+      text-align: center;
+      font-size: clamp(0.9rem, 2.2vw, 1.25rem);
+      letter-spacing: 0.06em;
+      color: rgba(220, 244, 255, 0.85);
+      text-shadow: 0 0 8px rgba(0,229,255,0.25);
+    }
+
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .controls button {
+      appearance: none; border: 1px solid rgba(0,229,255,0.45);
+      background: linear-gradient(180deg, rgba(0,229,255,0.10), rgba(0,229,255,0.02));
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      text-shadow: 0 0 8px rgba(0,229,255,0.35);
+    }
+    .controls button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,229,255,0.15);
+      border-color: rgba(161,118,255,0.55);
+    }
+    .controls button:active {
+      transform: translateY(0px) scale(0.98);
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .nebula { animation: none; }
+      .time .colon { animation: none; opacity: 1; }
+      .clock-card::after { animation: none; display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="space" aria-hidden="true"></canvas>
+  <div class="nebula" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <main class="clock-wrap">
+    <section class="clock-card" role="timer" aria-live="polite">
+      <div class="time" id="time">
+        <span id="hh">12</span><span class="colon" id="c1">:</span>
+        <span id="mm">00</span><span class="colon" id="c2">:</span>
+        <span id="ss">00</span>
+        <span class="ampm" id="ampm"></span>
+      </div>
+      <div class="date" id="date">—</div>
+      <div class="controls">
+        <button id="toggleFormat" title="Toggle 12/24 hour">24H</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // Elements
+      const hh = document.getElementById('hh');
+      const mm = document.getElementById('mm');
+      const ss = document.getElementById('ss');
+      const ampmEl = document.getElementById('ampm');
+      const dateEl = document.getElementById('date');
+      const toggleBtn = document.getElementById('toggleFormat');
+      const canvas = document.getElementById('space');
+      const ctx = canvas.getContext('2d', { alpha: true });
+
+      // Settings
+      let is24h = true;
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const DPR = Math.min(window.devicePixelRatio || 1, 2); // cap DPR for perf
+
+      // Helpers
+      const pad = (n) => String(n).padStart(2, '0');
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+      // Time + Date
+      function updateClock() {
+        const now = new Date();
+        let h = now.getHours();
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+
+        if (!is24h) {
+          const hh12 = (h % 12) || 12;
+          ampmEl.textContent = h >= 12 ? 'PM' : 'AM';
+          ampmEl.style.display = 'inline';
+          hh.textContent = pad(hh12);
+        } else {
+          ampmEl.style.display = 'none';
+          hh.textContent = pad(h);
+        }
+        mm.textContent = pad(m);
+        ss.textContent = pad(s);
+
+        const parts = new Intl.DateTimeFormat(undefined, {
+          weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
+          timeZoneName: 'short'
+        }).formatToParts(now);
+
+        const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+        // Compose like: Wednesday • Oct 30, 2025 • GMT+X
+        dateEl.textContent = `${map.weekday} • ${map.month} ${map.day}, ${map.year} • ${map.timeZoneName || ''}`;
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        is24h = !is24h;
+        toggleBtn.textContent = is24h ? '24H' : '12H';
+        updateClock();
+      });
+
+      // Update time
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Parallax for nebula
+      const root = document.documentElement;
+      window.addEventListener('pointermove', (e) => {
+        const px = (e.clientX / window.innerWidth) - 0.5;
+        const py = (e.clientY / window.innerHeight) - 0.5;
+        root.style.setProperty('--parx', (px * 10).toFixed(2) + 'px');
+        root.style.setProperty('--pary', (py * 10).toFixed(2) + 'px');
+      }, { passive: true });
+
+      // STARFIELD
+      let stars = [];
+      let meteors = [];
+      let vw = 0, vh = 0;
+
+      function resize() {
+        vw = window.innerWidth;
+        vh = window.innerHeight;
+        canvas.width = Math.floor(vw * DPR);
+        canvas.height = Math.floor(vh * DPR);
+        // Draw in CSS pixels; scale context
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+        // Adjust density with viewport size
+        const density = 0.00018; // stars per pixel
+        const count = clamp(Math.floor(vw * vh * density), 140, 700);
+        initStars(count);
+      }
+      window.addEventListener('resize', resize);
+
+      function rand(a=0, b=1) { return a + Math.random() * (b - a); }
+
+      function initStars(count) {
+        stars = new Array(count).fill(0).map(() => makeStar(rand(0, vw)));
+      }
+
+      function makeStar(xPos) {
+        const depth = Math.pow(Math.random(), 1.8); // bias toward far stars
+        const size = 0.5 + depth * 1.6;
+        const speed = 8 + depth * 28; // px/s
+        return {
+          x: xPos ?? rand(0, vw),
+          y: rand(0, vh),
+          z: depth,
+          size,
+          speed,
+          tw: rand(0, Math.PI * 2),     // twinkle phase
+          tws: rand(1.2, 2.2),          // twinkle speed
+          hue: rand(185, 210) + depth * 60 // slight color variance bluish/cyan
+        };
+      }
+
+      function spawnMeteor() {
+        if (reduceMotion) return;
+        const startX = rand(vw * 0.6, vw * 0.95);
+        const startY = rand(0, vh * 0.30);
+        const speed = rand(420, 680); // px/s
+        const angle = rand(Math.PI * 0.62, Math.PI * 0.78); // diagonal down-left
+        meteors.push({
+          x: startX,
+          y: startY,
+          vx: -Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: rand(500, 900), // ms
+          age: 0,
+          len: rand(100, 190)
+        });
+        // schedule next
+        setTimeout(spawnMeteor, rand(5000, 12000));
+      }
+
+      function drawStar(s, dt) {
+        if (!reduceMotion) {
+          s.x -= s.speed * dt; // drift left
+          s.tw += s.tws * dt;
+        }
+        if (s.x < -2) {
+          // Recycle to the right
+          s.x = vw + rand(0, vw * 0.2);
+          s.y = rand(0, vh);
+          s.z = Math.pow(Math.random(), 1.8);
+          s.size = 0.5 + s.z * 1.6;
+          s.speed = 8 + s.z * 28;
+          s.tws = rand(1.2, 2.2);
+        }
+        const alpha = 0.55 + Math.sin(s.tw) * 0.35 * (0.6 + s.z * 0.4);
+        ctx.beginPath();
+        // slight color shift
+        const c = `hsla(${s.hue.toFixed(1)}, 90%, ${clamp(85 * (0.6 + s.z * 0.7), 60, 90)}%, ${alpha.toFixed(3)})`;
+        ctx.fillStyle = c;
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawMeteor(m, dt) {
+        m.age += dt * 1000;
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+
+        const t = 1 - (m.age / m.life);
+        if (t <= 0) return false;
+
+        const nx = m.x, ny = m.y;
+        const tx = nx + (m.vx / Math.hypot(m.vx, m.vy)) * (-m.len * t);
+        const ty = ny + (m.vy / Math.hypot(m.vx, m.vy)) * (-m.len * t);
+
+        const grad = ctx.createLinearGradient(tx, ty, nx, ny);
+        grad.addColorStop(0, 'rgba(0,229,255,0)');
+        grad.addColorStop(0.5, 'rgba(0,229,255,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,255,0.9)');
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(nx, ny);
+        ctx.stroke();
+
+        return true;
+      }
+
+      // Animation loop
+      let last = performance.now();
+      function loop(now) {
+        const dt = clamp((now - last) / 1000, 0, 0.08); // seconds
+        last = now;
+
+        // Clear
+        ctx.clearRect(0, 0, vw, vh);
+
+        // Slight star parallax with pointer
+        const parx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--parx')) || 0;
+        const pary = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pary')) || 0;
+        ctx.save();
+        ctx.translate(parx * 0.25, pary * 0.25);
+
+        // Draw stars
+        for (let i = 0; i < stars.length; i++) drawStar(stars[i], dt);
+
+        ctx.restore();
+
+        // Draw meteors
+        if (!reduceMotion && meteors.length) {
+          meteors = meteors.filter(m => drawMeteor(m, dt));
+        }
+
+        requestAnimationFrame(loop);
+      }
+
+      // Init
+      resize();
+      requestAnimationFrame(loop);
+      setTimeout(spawnMeteor, 2500 + Math.random() * 4000);
+    })();
+  </script>
+</body>
+</html>
